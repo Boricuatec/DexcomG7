@@ -34,8 +34,18 @@ WidgetButton {
   property string mgdl: "--"
   property string trendArrow: "?"
   property var minutesAgo: null
+  property var secondsAgo: null
   property string status: "unknown"
   property string tooltip: "Loading Dexcom data…"
+
+  // Dexcom G7 publishes a new reading roughly every 5 minutes. Rather than
+  // poll on a fixed interval (out of phase with that cadence, and far more
+  // API calls than needed - part of why testing hit Dexcom's rate limit),
+  // schedule the next poll for shortly after the next reading is expected,
+  // based on the age of the one we just got.
+  readonly property int readingIntervalSeconds: 300
+  readonly property int publishBufferSeconds: 20
+  readonly property int minPollSeconds: 15
 
   useActiveColor: false
   foreground: colorFor(status)
@@ -83,6 +93,26 @@ WidgetButton {
     if (!proc.running) proc.running = true
   }
 
+  function fallbackDelaySeconds() {
+    return Math.max(30, Number(setting("pollIntervalSeconds", 60)))
+  }
+
+  function scheduleNextPoll() {
+    var fallback = fallbackDelaySeconds()
+    var delay = fallback
+
+    if (root.ok && root.status !== "stale" && typeof root.secondsAgo === "number") {
+      // Time until (next expected reading + a small publish-latency buffer).
+      var wait = (root.readingIntervalSeconds + root.publishBufferSeconds) - root.secondsAgo
+      delay = Math.max(root.minPollSeconds, wait)
+      // A bad/odd timestamp shouldn't ever push us out past the fallback.
+      delay = Math.min(delay, fallback)
+    }
+
+    pollTimer.interval = delay * 1000
+    pollTimer.restart()
+  }
+
   onPressed: root.refresh()
 
   Process {
@@ -98,6 +128,7 @@ WidgetButton {
             root.mgdl = data.mgdl
             root.trendArrow = data.trendArrow
             root.minutesAgo = data.minutesAgo
+            root.secondsAgo = data.secondsAgo
             root.status = data.status
             root.tooltip = data.tooltip
           } else {
@@ -110,15 +141,16 @@ WidgetButton {
           root.status = "unknown"
           root.tooltip = "dexcom-status produced invalid output"
         }
+        root.scheduleNextPoll()
       }
     }
   }
 
   Timer {
-    interval: Math.max(30, Number(root.setting("pollIntervalSeconds", 60))) * 1000
+    id: pollTimer
+    interval: 1000
+    repeat: false
     running: true
-    repeat: true
-    triggeredOnStart: true
     onTriggered: root.refresh()
   }
 }

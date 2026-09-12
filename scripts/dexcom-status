@@ -318,9 +318,11 @@ def main():
     wt = latest.get("WT") or latest.get("ST") or latest.get("DT") or ""
     reading_ts = parse_dotnet_date(wt)
 
+    seconds_ago = None
     minutes_ago = None
     if reading_ts is not None:
-        minutes_ago = max(0, int((time.time() - reading_ts) / 60))
+        seconds_ago = max(0, int(time.time() - reading_ts))
+        minutes_ago = seconds_ago // 60
 
     status = classify(mgdl, minutes_ago, args)
     arrow = TREND_ARROWS.get(trend, "?")
@@ -346,6 +348,7 @@ def main():
                 "trendArrow": arrow,
                 "trendLabel": trend,
                 "minutesAgo": minutes_ago,
+                "secondsAgo": seconds_ago,
                 "status": status,
                 "tooltip": tooltip,
             }

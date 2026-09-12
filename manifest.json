@@ -51,11 +51,12 @@
       {
         "key": "pollIntervalSeconds",
         "type": "integer",
-        "label": "Poll interval (seconds)",
+        "label": "Fallback poll interval (seconds)",
         "min": 30,
         "max": 600,
         "step": 10,
-        "defaultValue": 60
+        "defaultValue": 60,
+        "description": "Dexcom publishes roughly every 5 minutes, so the widget schedules its next check for shortly after that - this value is only the retry cadence used on errors or while the sensor is stale, and a ceiling if a reading's timestamp ever looks wrong."
       },
       {
         "key": "lowThreshold",
