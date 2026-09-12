@@ -408,9 +408,9 @@ Panel {
           var lastX = xFor(series.length - 1)
           var lastY = yFor(series[series.length - 1].value)
           ctx.strokeStyle = "#ffffff"
-          ctx.lineWidth = 1.5
+          ctx.lineWidth = 2
           ctx.beginPath()
-          ctx.arc(lastX, lastY, 1.75, 0, Math.PI * 2)
+          ctx.arc(lastX, lastY, 5, 0, Math.PI * 2)
           ctx.stroke()
         }
       }
