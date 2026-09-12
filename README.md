@@ -37,15 +37,15 @@ guidance. Use entirely at your own risk.
 
 ## Setup
 
-1. Create the credentials file (default location shown; override via the
-   widget's settings if you'd rather keep it elsewhere):
+1. Create the credentials file from the bundled example (default location
+   shown; override via the widget's `credentialsPath` setting if you'd
+   rather keep it elsewhere). [`credentials.env.example`](credentials.env.example)
+   also carries inline notes on the login gotchas below:
 
    ```bash
    mkdir -p ~/.config/omarchy-dexcom
-   cat > ~/.config/omarchy-dexcom/credentials.env <<'EOF'
-   DEXCOM_USERNAME=you@example.com
-   DEXCOM_PASSWORD=your-dexcom-password
-   EOF
+   cp credentials.env.example ~/.config/omarchy-dexcom/credentials.env
+   $EDITOR ~/.config/omarchy-dexcom/credentials.env   # fill in real values
    chmod 600 ~/.config/omarchy-dexcom/credentials.env
    ```
 
