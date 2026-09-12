@@ -9,6 +9,18 @@
   <a href="https://paypal.me/Boricuatec"><img alt="Donate via PayPal" src="https://img.shields.io/badge/donate-PayPal-00457C?logo=paypal&logoColor=white"></a>
 </p>
 
+## Why I built this
+
+My 12-year-old son was diagnosed with Type 1 Diabetes in 2025. We're in San
+Diego, California, and I wanted a way to keep an eye on his glucose from my
+own computer while I'm working, without having to pick up my phone every few
+minutes. This plugin is that — built for him, first and foremost.
+
+If it's useful to you too and you'd like to contribute, every bit donated
+through the PayPal link above goes straight into his college fund. No
+pressure at all — just glad to share something that helps our family in case
+it helps yours.
+
 ## Disclaimer
 
 This is an independent, unofficial project. It is **not affiliated with,
