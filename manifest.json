@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "id": "io.github.boricuatec.dexcomg7",
   "name": "Dexcom G7",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "author": "Boricuatec",
   "license": "MIT",
-  "description": "Live Dexcom G7 glucose readings in the Omarchy bar via the Dexcom Share API, with color-coded high/low alerts and a recent-history tooltip.",
+  "description": "Live Dexcom G7 glucose readings in the Omarchy bar via the Dexcom Share API, with color-coded high/low alerts, a recent-history tooltip, and a click-to-open popup graph.",
   "kinds": [
     "bar-widget"
   ],
@@ -14,7 +14,7 @@
   },
   "barWidget": {
     "displayName": "Dexcom G7",
-    "description": "Current glucose reading, trend arrow, and a recent-history tooltip. Colored by range: white/theme = normal, orange = low or high, red = urgent low or urgent high, gray = stale or errored.",
+    "description": "Current glucose reading, trend arrow, and a recent-history tooltip. Click to open a popup with a graph of recent readings. Colored by range: white/theme = normal, orange = low or high, red = urgent low or urgent high, gray = stale or errored.",
     "category": "Health",
     "allowMultiple": false,
     "defaultSection": "right",
@@ -30,7 +30,8 @@
       "units": "mgdl",
       "showHistoryInTooltip": true,
       "historyWindowMinutes": 60,
-      "showTrendWord": false
+      "showTrendWord": false,
+      "graphWindowMinutes": 180
     },
     "schema": [
       {
@@ -134,6 +135,16 @@
         "label": "Spell out the trend in the tooltip",
         "defaultValue": false,
         "description": "e.g. \"rising\" instead of the raw Dexcom trend code, alongside the arrow."
+      },
+      {
+        "key": "graphWindowMinutes",
+        "type": "integer",
+        "label": "Graph window (minutes)",
+        "min": 60,
+        "max": 1440,
+        "step": 30,
+        "defaultValue": 180,
+        "description": "How far back the popup graph (click the widget) looks. Fetched in the same call as the current reading, so this doesn't add extra API requests."
       }
     ]
   }

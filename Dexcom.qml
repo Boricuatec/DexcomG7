@@ -2,13 +2,15 @@ import QtQuick
 import Quickshell.Io
 import qs.Ui
 
-WidgetButton {
+// Panel (not WidgetButton) is the root because a popup graph needs the
+// open/close lifecycle Panel+PanelController provide; the bar's visible
+// text/tooltip/cursor live on a WidgetButton child instead (see button
+// below), same split first-party panels like weather use.
+Panel {
   id: root
 
-  property string moduleName
-  property var settings
-
-  readonly property string scriptPath: Qt.resolvedUrl("scripts/dexcom-status").toString().replace("file://", "")
+  moduleName: "io.github.boricuatec.dexcomg7"
+  ipcTarget: "io.github.boricuatec.dexcomg7"
 
   function setting(name, fallback) {
     var value = settings ? settings[name] : undefined
@@ -32,11 +34,14 @@ WidgetButton {
 
   property bool ok: false
   property string mgdl: "--"
+  property string unit: "mg/dL"
   property string trendArrow: "?"
   property var minutesAgo: null
   property var secondsAgo: null
   property string status: "unknown"
   property string tooltip: "Loading Dexcom data…"
+  property var series: []
+  property var thresholds: ({})
 
   // Dexcom G7 publishes a new reading roughly every 5 minutes. Rather than
   // poll on a fixed interval (out of phase with that cadence, and far more
@@ -46,11 +51,6 @@ WidgetButton {
   readonly property int readingIntervalSeconds: 300
   readonly property int publishBufferSeconds: 20
   readonly property int minPollSeconds: 15
-
-  useActiveColor: false
-  foreground: colorFor(status)
-  text: ok ? ("BG " + mgdl + " " + trendArrow) : "BG --"
-  tooltipText: tooltip
 
   function colorFor(s) {
     switch (s) {
@@ -71,7 +71,7 @@ WidgetButton {
   function buildCommand() {
     var credentialsPath = String(setting("credentialsPath", ""))
     var args = [
-      root.scriptPath,
+      Qt.resolvedUrl("scripts/dexcom-status").toString().replace("file://", ""),
       "--server", String(setting("server", "share2")),
       "--low", String(setting("lowThreshold", 70)),
       "--high", String(setting("highThreshold", 180)),
@@ -82,6 +82,7 @@ WidgetButton {
       "--show-history", settingBool("showHistoryInTooltip", true) ? "true" : "false",
       "--history-minutes", String(setting("historyWindowMinutes", 60)),
       "--show-trend-word", settingBool("showTrendWord", false) ? "true" : "false",
+      "--graph-minutes", String(setting("graphWindowMinutes", 180)),
     ]
     if (credentialsPath !== "") {
       args.push("--credentials", credentialsPath)
@@ -102,10 +103,8 @@ WidgetButton {
     var delay = fallback
 
     if (root.ok && root.status !== "stale" && typeof root.secondsAgo === "number") {
-      // Time until (next expected reading + a small publish-latency buffer).
       var wait = (root.readingIntervalSeconds + root.publishBufferSeconds) - root.secondsAgo
       delay = Math.max(root.minPollSeconds, wait)
-      // A bad/odd timestamp shouldn't ever push us out past the fallback.
       delay = Math.min(delay, fallback)
     }
 
@@ -113,7 +112,11 @@ WidgetButton {
     pollTimer.restart()
   }
 
-  onPressed: root.refresh()
+  onOpenedChanged: if (opened) root.refresh()
+
+  visible: true
+  implicitWidth: button.implicitWidth
+  implicitHeight: button.implicitHeight
 
   Process {
     id: proc
@@ -126,11 +129,14 @@ WidgetButton {
           if (data.ok) {
             root.ok = true
             root.mgdl = data.mgdl
+            root.unit = data.unit
             root.trendArrow = data.trendArrow
             root.minutesAgo = data.minutesAgo
             root.secondsAgo = data.secondsAgo
             root.status = data.status
             root.tooltip = data.tooltip
+            root.series = data.series || []
+            root.thresholds = data.thresholds || {}
           } else {
             root.ok = false
             root.status = "unknown"
@@ -152,5 +158,150 @@ WidgetButton {
     repeat: false
     running: true
     onTriggered: root.refresh()
+  }
+
+  WidgetButton {
+    id: button
+    anchors.fill: parent
+    bar: root.bar
+    useActiveColor: false
+    foreground: root.colorFor(root.status)
+    text: root.ok ? ("BG " + root.mgdl + " " + root.trendArrow) : "BG --"
+    tooltipText: root.tooltip
+    onPressed: root.toggle()
+  }
+
+  KeyboardPanel {
+    id: panel
+    anchorItem: button
+    owner: root
+    bar: root.bar
+    open: root.opened
+    centerOnBar: true
+    contentWidth: 300
+    contentHeight: 220
+
+    Column {
+      anchors.fill: parent
+      spacing: 8
+
+      Row {
+        width: parent.width
+        spacing: 8
+
+        Text {
+          id: bigValue
+          text: root.ok ? root.mgdl : "--"
+          color: root.colorFor(root.status)
+          font.pixelSize: 24
+          font.bold: true
+        }
+        Text {
+          text: root.unit + "  " + root.trendArrow
+          color: bar ? bar.barForeground : "white"
+          font.pixelSize: 14
+          anchors.verticalCenter: bigValue.verticalCenter
+        }
+      }
+
+      Text {
+        width: parent.width
+        text: root.minutesAgo !== null ? (root.minutesAgo + " min ago") : "time unknown"
+        color: "#888888"
+        font.pixelSize: 11
+      }
+
+      Canvas {
+        id: graphCanvas
+        width: parent.width
+        height: 120
+
+        onPaint: {
+          var ctx = getContext("2d")
+          ctx.clearRect(0, 0, width, height)
+          var series = root.series
+
+          if (!series || series.length < 2) {
+            ctx.fillStyle = "#888888"
+            ctx.font = "11px sans-serif"
+            ctx.fillText("Not enough data yet", 10, height / 2)
+            return
+          }
+
+          var values = series.map(function (p) { return p.value })
+          var th = root.thresholds || {}
+          var lo = Math.min.apply(null, values)
+          var hi = Math.max.apply(null, values)
+          if (typeof th.urgentLow === "number") lo = Math.min(lo, th.urgentLow)
+          if (typeof th.urgentHigh === "number") hi = Math.max(hi, th.urgentHigh)
+          var pad = Math.max((hi - lo) * 0.15, 1)
+          var yMin = lo - pad
+          var yMax = hi + pad
+          var range = yMax - yMin || 1
+
+          function xFor(i) { return (i / (series.length - 1)) * width }
+          function yFor(v) {
+            var c = Math.max(yMin, Math.min(yMax, v))
+            return height - ((c - yMin) / range) * height
+          }
+
+          if (typeof th.high === "number") {
+            ctx.fillStyle = "rgba(224,82,82,0.12)"
+            ctx.fillRect(0, 0, width, yFor(th.high))
+          }
+          if (typeof th.low === "number") {
+            ctx.fillStyle = "rgba(224,82,82,0.12)"
+            ctx.fillRect(0, yFor(th.low), width, height - yFor(th.low))
+          }
+
+          ctx.strokeStyle = "#5b9bd5"
+          ctx.lineWidth = 2
+          ctx.beginPath()
+          for (var i = 0; i < series.length; i++) {
+            var x = xFor(i)
+            var y = yFor(series[i].value)
+            if (i === 0) ctx.moveTo(x, y)
+            else ctx.lineTo(x, y)
+          }
+          ctx.stroke()
+
+          var lastX = xFor(series.length - 1)
+          var lastY = yFor(series[series.length - 1].value)
+          ctx.fillStyle = root.colorFor(root.status)
+          ctx.beginPath()
+          ctx.arc(lastX, lastY, 3.5, 0, Math.PI * 2)
+          ctx.fill()
+
+          ctx.fillStyle = "#888888"
+          ctx.font = "10px sans-serif"
+          ctx.fillText(hi.toFixed(1), 4, 10)
+          ctx.fillText(lo.toFixed(1), 4, height - 4)
+        }
+      }
+
+      Text {
+        width: parent.width
+        text: {
+          var series = root.series
+          if (!series || series.length < 2) return ""
+          var oldest = series[0], newest = series[series.length - 1]
+          var values = series.map(function (p) { return p.value })
+          var lo = Math.min.apply(null, values)
+          var hi = Math.max.apply(null, values)
+          var spanMin = 0
+          if (typeof oldest.secondsAgo === "number" && typeof newest.secondsAgo === "number")
+            spanMin = Math.round((oldest.secondsAgo - newest.secondsAgo) / 60)
+          return "Last " + spanMin + " min: " + lo + "-" + hi + " " + root.unit
+        }
+        color: "#888888"
+        font.pixelSize: 11
+      }
+    }
+  }
+
+  Connections {
+    target: root
+    function onSeriesChanged() { graphCanvas.requestPaint() }
+    function onStatusChanged() { graphCanvas.requestPaint() }
   }
 }

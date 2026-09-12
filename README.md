@@ -33,11 +33,16 @@ guidance. Use entirely at your own risk.
 
 ## What it shows
 
-- Current glucose value (mg/dL) and trend arrow, refreshed on an interval you set.
+- Current glucose value and trend arrow in the bar, polled adaptively around
+  Dexcom's ~5 minute reporting cadence rather than a fixed interval.
 - Color-coded by range: theme color = normal, orange = low/high, red = urgent
   low/high, gray = stale (no recent reading) or errored.
-- Hover for a tooltip with the reading age and a rolling last-hour summary
+- Hover for a tooltip with the reading age and a rolling history summary
   (low–high range and overall direction).
+- **Click the bar text to open a popup** with the current reading and a graph
+  of recent history, shaded to show the low/high threshold bands. Also
+  summonable over IPC (e.g. for a hotkey binding):
+  `omarchy-shell io.github.boricuatec.dexcomg7 toggle` (also `open`/`close`).
 
 ## Requirements
 
@@ -83,7 +88,7 @@ guidance. Use entirely at your own risk.
    | Setting | Default | Notes |
    |---|---|---|
    | `server` | `share2` | `share2` = US, `shareous1` = outside US, `share` = Japan |
-   | `pollIntervalSeconds` | `60` | Dexcom readings update every 5 min; no need to go lower |
+   | `pollIntervalSeconds` | `60` | Fallback/retry cadence only — normal polling is adaptive (see below) |
    | `lowThreshold` / `highThreshold` | `70` / `180` | mg/dL, orange warning band |
    | `urgentLow` / `urgentHigh` | `55` / `250` | mg/dL, red urgent band |
    | `staleAfterMinutes` | `20` | Flags a possible sensor/Bluetooth disconnect |
@@ -91,6 +96,7 @@ guidance. Use entirely at your own risk.
    | `showHistoryInTooltip` | `true` | Toggles the "Last N min: lo-hi (direction)" tooltip line |
    | `historyWindowMinutes` | `60` | How far back that history line looks (15-180) |
    | `showTrendWord` | `false` | Spells out "rising" etc. instead of the raw Dexcom trend code |
+   | `graphWindowMinutes` | `180` | How far back the popup graph looks (60-1440); fetched in the same call, no extra API load |
 
 ## Troubleshooting
 
@@ -148,6 +154,16 @@ guidance. Use entirely at your own risk.
      root-type case above, `omarchy restart shell` is the reliable way to
      see a settings change take effect immediately rather than waiting for
      the poll interval.
+- **Building a popup on top of `WidgetButton`**: don't. A bar widget that
+  wants a popup panel (not just a tooltip) needs `qs.Ui`'s `Panel` as the
+  *root* type instead, with the visible bar text/cursor/tooltip moved onto a
+  `WidgetButton` **child** (`button` in `Dexcom.qml`), and the popup itself
+  built with `KeyboardPanel` (also third-party-safe — confirmed via the
+  already-installed AirPods plugin using the identical pattern). One gotcha
+  along the way: `KeyboardPanel`'s default content property only accepts
+  visual `Item`s, so a `Connections {}` block used to trigger graph repaints
+  has to live outside it (as a sibling of `button`/`panel`), not nested
+  inside as a "child" of the popup content.
 
 ## License
 

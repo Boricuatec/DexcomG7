@@ -102,6 +102,7 @@ def parse_args():
     p.add_argument("--show-history", default="true")
     p.add_argument("--history-minutes", type=int, default=60)
     p.add_argument("--show-trend-word", default="false")
+    p.add_argument("--graph-minutes", type=int, default=180)
     return p.parse_args()
 
 
@@ -286,11 +287,10 @@ def main():
     if not creds:
         fail("no_credentials", f"Create {args.credentials} (chmod 600) - see README")
 
-    if show_history:
-        window = max(15, args.history_minutes)
-        max_count = min(288, max(2, math.ceil(window / 5) + 1))
-    else:
-        window, max_count = 1440, 1
+    # Fetch enough history to cover both the tooltip's summary window and the
+    # popup graph's window - one API call serves both, no extra requests.
+    window = max(15, args.graph_minutes, args.history_minutes if show_history else 0)
+    max_count = min(288, max(2, math.ceil(window / 5) + 1))
 
     session_id = cached_session(args.server)
     readings = None
@@ -339,6 +339,22 @@ def main():
         if history_line:
             tooltip += "\n" + history_line
 
+    series = []
+    now = time.time()
+    for r in readings:
+        v = r.get("Value")
+        if not isinstance(v, (int, float)):
+            continue
+        ts = parse_dotnet_date(r.get("WT") or r.get("ST") or r.get("DT") or "")
+        series.append(
+            {
+                "secondsAgo": max(0, int(now - ts)) if ts is not None else None,
+                "raw": v,
+                "value": float(format_value(v, args.units)),
+            }
+        )
+    series.reverse()  # oldest first, natural left-to-right plotting
+
     print(
         json.dumps(
             {
@@ -351,6 +367,13 @@ def main():
                 "secondsAgo": seconds_ago,
                 "status": status,
                 "tooltip": tooltip,
+                "series": series,
+                "thresholds": {
+                    "low": float(format_value(args.low, args.units)),
+                    "high": float(format_value(args.high, args.units)),
+                    "urgentLow": float(format_value(args.urgent_low, args.units)),
+                    "urgentHigh": float(format_value(args.urgent_high, args.units)),
+                },
             }
         )
     )
