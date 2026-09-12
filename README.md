@@ -96,6 +96,15 @@ guidance. Use entirely at your own risk.
   actually draw it, falling back to a tofu box. Plain Unicode arrows (`→ ↑ ↓`)
   render fine; private-use icon-font codepoints are not trustworthy without
   testing them in the live bar first.
+- **No hover cursor / no tooltip after editing `Dexcom.qml`**: the bar's
+  tooltip system only calls `showTooltip`/`hideTooltip` on a target that
+  exposes a `tooltipHovered` property — this widget gets that (plus the
+  pointer cursor on hover, and click-target registration) for free by
+  building on `qs.Ui`'s `WidgetButton`, so don't drop that base without
+  replacing what it provides. Separately: `omarchy-shell shell
+  rescanPlugins` reliably picks up logic/property changes, but a change to
+  the QML **root type** (e.g. `Item` → `WidgetButton`) may not fully apply
+  until `omarchy restart shell`.
 
 ## License
 
