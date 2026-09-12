@@ -1,10 +1,10 @@
 import QtQuick
 import Quickshell.Io
+import qs.Ui
 
-Item {
+WidgetButton {
   id: root
 
-  property var bar
   property string moduleName
   property var settings
 
@@ -22,15 +22,13 @@ Item {
   property string status: "unknown"
   property string tooltip: "Loading Dexcom data…"
 
-  implicitWidth: label.implicitWidth + 16
-  implicitHeight: bar ? bar.barSize : 26
+  useActiveColor: false
+  foreground: colorFor(status)
+  text: ok ? ("BG " + mgdl + " " + trendArrow) : "BG --"
+  tooltipText: tooltip
 
-  // Required by the bar's tooltip system (see Bar.qml targetTooltipHovered):
-  // showTooltip/hideTooltip only act on a target exposing this property.
-  readonly property bool tooltipHovered: visible && opacity > 0 && mouseArea.containsMouse
-
-  function colorFor(status) {
-    switch (status) {
+  function colorFor(s) {
+    switch (s) {
       case "urgent_low":
       case "urgent_high":
         return bar ? bar.urgent : "#e05252"
@@ -41,7 +39,7 @@ Item {
       case "unknown":
         return "#888888"
       default:
-        return bar ? bar.foreground : "white"
+        return bar ? bar.barForeground : "white"
     }
   }
 
@@ -66,6 +64,8 @@ Item {
   function refresh() {
     if (!proc.running) proc.running = true
   }
+
+  onPressed: root.refresh()
 
   Process {
     id: proc
@@ -102,24 +102,5 @@ Item {
     repeat: true
     triggeredOnStart: true
     onTriggered: root.refresh()
-  }
-
-  Text {
-    id: label
-    anchors.centerIn: parent
-    text: root.ok ? ("BG " + root.mgdl + " " + root.trendArrow) : "BG --"
-    color: root.colorFor(root.status)
-    font.family: bar ? bar.fontFamily : "monospace"
-    font.pixelSize: 13
-    font.bold: root.status === "urgent_low" || root.status === "urgent_high"
-  }
-
-  MouseArea {
-    id: mouseArea
-    anchors.fill: parent
-    hoverEnabled: true
-    onEntered: if (bar) bar.showTooltip(root, root.tooltip)
-    onExited: if (bar) bar.hideTooltip(root)
-    onClicked: root.refresh()
   }
 }
