@@ -52,6 +52,10 @@ risk.**
   reading's exact value and timestamp ("Yesterday, 7:55 AM"), a dashed guide
   line down to the axis, and a ring on the selected point. Tap it again to
   dismiss.
+- **Tap the gear icon** in the popup to swap the graph for four threshold
+  sliders (Urgent High / High / Low / Urgent Low). Releasing a slider saves
+  it immediately as the new setting (same `omarchy bar set` mechanism as the
+  graph range), so it persists across restarts too.
 
 ## Requirements
 

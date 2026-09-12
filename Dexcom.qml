@@ -102,6 +102,29 @@ Panel {
 
   property int selectedPointIndex: -1
 
+  // Threshold editor (behind the gear icon). Edited values are local until
+  // a slider is released, then persisted via bar.run("omarchy bar set ...")
+  // - the same mechanism already proven for the graph range setting.
+  property bool showSettings: false
+  property real editLow: 70
+  property real editHigh: 180
+  property real editUrgentLow: 55
+  property real editUrgentHigh: 250
+
+  function openThresholdEditor() {
+    editLow = Number(setting("lowThreshold", 70))
+    editHigh = Number(setting("highThreshold", 180))
+    editUrgentLow = Number(setting("urgentLow", 55))
+    editUrgentHigh = Number(setting("urgentHigh", 250))
+    showSettings = true
+  }
+
+  function persistThreshold(key, value) {
+    var rounded = Math.round(value)
+    if (bar) bar.run("omarchy bar set " + root.moduleName + " " + key + " " + rounded)
+    root.refresh()
+  }
+
   function commonArgs() {
     var credentialsPath = String(setting("credentialsPath", ""))
     var args = [
@@ -180,6 +203,7 @@ Panel {
   onOpenedChanged: {
     if (opened) root.refresh()
     root.selectedPointIndex = -1
+    root.showSettings = false
   }
 
   visible: true
@@ -311,28 +335,48 @@ Panel {
       anchors.fill: parent
       spacing: 8
 
-      Row {
+      Item {
         width: parent.width
-        spacing: 8
+        height: bigValue.height
+
+        Row {
+          id: valueRow
+          spacing: 8
+          Text {
+            id: bigValue
+            text: root.ok ? root.mgdl : "--"
+            color: root.colorFor(root.status)
+            font.pixelSize: 24
+            font.bold: true
+          }
+          Text {
+            text: root.unit + "  " + root.trendArrow
+            color: bar ? bar.barForeground : "white"
+            font.pixelSize: 14
+            anchors.verticalCenter: bigValue.verticalCenter
+          }
+        }
 
         Text {
-          id: bigValue
-          text: root.ok ? root.mgdl : "--"
-          color: root.colorFor(root.status)
-          font.pixelSize: 24
-          font.bold: true
-        }
-        Text {
-          text: root.unit + "  " + root.trendArrow
-          color: bar ? bar.barForeground : "white"
-          font.pixelSize: 14
-          anchors.verticalCenter: bigValue.verticalCenter
+          anchors.right: parent.right
+          anchors.verticalCenter: valueRow.verticalCenter
+          text: "⚙"
+          color: root.showSettings ? (bar ? bar.barForeground : "white") : "#888888"
+          font.pixelSize: 16
+
+          MouseArea {
+            anchors.fill: parent
+            anchors.margins: -6
+            cursorShape: Qt.PointingHandCursor
+            onClicked: root.showSettings ? (root.showSettings = false) : root.openThresholdEditor()
+          }
         }
       }
 
       Row {
         width: parent.width
         spacing: 6
+        visible: !root.showSettings
 
         Repeater {
           model: [
@@ -382,6 +426,7 @@ Panel {
         id: graphCanvas
         width: parent.width
         height: 120
+        visible: !root.showSettings
 
         onPaint: {
           var ctx = getContext("2d")
@@ -528,6 +573,7 @@ Panel {
 
       Row {
         width: parent.width - root.graphLabelMargin
+        visible: !root.showSettings
 
         Repeater {
           model: {
@@ -563,6 +609,7 @@ Panel {
         height: 22
         radius: height / 2
         color: "#2a2a2a"
+        visible: !root.showSettings
 
         Row {
           id: pillRow
@@ -600,6 +647,89 @@ Panel {
         }
         color: "#888888"
         font.pixelSize: 11
+        visible: !root.showSettings
+      }
+
+      Column {
+        width: parent.width
+        spacing: 12
+        visible: root.showSettings
+
+        Repeater {
+          model: [
+            { label: "Urgent High", key: "urgentHigh", color: "#e05252", min: 200, max: 400 },
+            { label: "High", key: "highThreshold", color: "#e0a030", min: 120, max: 300 },
+            { label: "Low", key: "lowThreshold", color: "#e0a030", min: 40, max: 100 },
+            { label: "Urgent Low", key: "urgentLow", color: "#e05252", min: 30, max: 90 },
+          ]
+
+          Column {
+            id: thresholdRow
+            required property var modelData
+            width: parent.width
+            spacing: 2
+
+            readonly property real currentValue: {
+              switch (thresholdRow.modelData.key) {
+                case "urgentHigh": return root.editUrgentHigh
+                case "highThreshold": return root.editHigh
+                case "lowThreshold": return root.editLow
+                case "urgentLow": return root.editUrgentLow
+              }
+              return 0
+            }
+
+            function setValue(v) {
+              switch (modelData.key) {
+                case "urgentHigh": root.editUrgentHigh = v; break
+                case "highThreshold": root.editHigh = v; break
+                case "lowThreshold": root.editLow = v; break
+                case "urgentLow": root.editUrgentLow = v; break
+              }
+            }
+
+            Item {
+              width: parent.width
+              height: labelText.height
+
+              Text {
+                id: labelText
+                text: thresholdRow.modelData.label
+                color: thresholdRow.modelData.color
+                font.pixelSize: 12
+                font.bold: true
+              }
+              Text {
+                anchors.right: parent.right
+                text: Math.round(thresholdRow.currentValue) + " " + root.unit
+                color: "#cccccc"
+                font.pixelSize: 12
+              }
+            }
+
+            PanelSlider {
+              width: parent.width
+              bar: root.bar
+              minimum: thresholdRow.modelData.min
+              maximum: thresholdRow.modelData.max
+              integer: true
+              value: thresholdRow.currentValue
+              onMoved: function (v) { thresholdRow.setValue(v) }
+              onReleased: function (v) {
+                thresholdRow.setValue(v)
+                root.persistThreshold(thresholdRow.modelData.key, v)
+              }
+            }
+          }
+        }
+
+        Text {
+          width: parent.width
+          text: "Changes save immediately and apply on the next refresh."
+          color: "#666666"
+          font.pixelSize: 10
+          wrapMode: Text.WordWrap
+        }
       }
 
       Text {
