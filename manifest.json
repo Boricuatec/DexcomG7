@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "io.github.boricuatec.dexcomg7",
   "name": "Dexcom G7",
-  "version": "1.4.4",
+  "version": "1.4.5",
   "author": "Boricuatec",
   "license": "MIT",
   "description": "Live Dexcom G7 glucose readings in the Omarchy bar via the Dexcom Share API, with color-coded high/low alerts, a recent-history tooltip, and a click-to-open popup graph.",
