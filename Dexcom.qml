@@ -159,8 +159,8 @@ Panel {
   onOpenedChanged: if (opened) root.refresh()
 
   visible: true
-  implicitWidth: button.implicitWidth
-  implicitHeight: button.implicitHeight
+  implicitWidth: barRow.implicitWidth
+  implicitHeight: barRow.implicitHeight
 
   Process {
     id: proc
@@ -226,15 +226,51 @@ Panel {
     onTriggered: root.refresh()
   }
 
-  WidgetButton {
-    id: button
+  Row {
+    id: barRow
     anchors.fill: parent
-    bar: root.bar
-    useActiveColor: false
-    foreground: root.colorFor(root.status)
-    text: root.ok ? ("BG " + root.mgdl + " " + root.trendArrow) : "BG --"
-    tooltipText: root.tooltip
-    onPressed: root.toggle()
+    spacing: 4
+
+    // Original artwork (not Dexcom's logo/trademark): a round sensor patch
+    // with an off-center transmitter bump, evoking a G7 without copying any
+    // actual Dexcom imagery. Toggle with the showSensorIcon setting.
+    Rectangle {
+      id: sensorIcon
+      visible: settingBool("showSensorIcon", true)
+      width: 14
+      height: 14
+      radius: 7
+      color: "transparent"
+      border.width: 1.5
+      border.color: root.colorFor(root.status)
+      anchors.verticalCenter: parent.verticalCenter
+
+      Rectangle {
+        width: 6
+        height: 6
+        radius: 3
+        color: parent.border.color
+        anchors.centerIn: parent
+        anchors.horizontalCenterOffset: 2
+        anchors.verticalCenterOffset: -2
+      }
+
+      MouseArea {
+        anchors.fill: parent
+        cursorShape: Qt.PointingHandCursor
+        onClicked: root.toggle()
+      }
+    }
+
+    WidgetButton {
+      id: button
+      bar: root.bar
+      useActiveColor: false
+      foreground: root.colorFor(root.status)
+      text: root.ok ? ("BG " + root.mgdl + " " + root.trendArrow) : "BG --"
+      tooltipText: root.tooltip
+      onPressed: root.toggle()
+    }
   }
 
   KeyboardPanel {

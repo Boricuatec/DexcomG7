@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "io.github.boricuatec.dexcomg7",
   "name": "Dexcom G7",
-  "version": "1.4.6",
+  "version": "1.5.0",
   "author": "Boricuatec",
   "license": "MIT",
   "description": "Live Dexcom G7 glucose readings in the Omarchy bar via the Dexcom Share API, with color-coded high/low alerts, a recent-history tooltip, and a click-to-open popup graph.",
@@ -31,7 +31,8 @@
       "showHistoryInTooltip": true,
       "historyWindowMinutes": 60,
       "showTrendWord": false,
-      "graphWindowMinutes": 180
+      "graphWindowMinutes": 180,
+      "showSensorIcon": true
     },
     "schema": [
       {
@@ -145,6 +146,13 @@
         "step": 30,
         "defaultValue": 180,
         "description": "How far back the popup graph (click the widget) looks. Fetched in the same call as the current reading, so this doesn't add extra API requests."
+      },
+      {
+        "key": "showSensorIcon",
+        "type": "boolean",
+        "label": "Show sensor icon",
+        "defaultValue": true,
+        "description": "A small original icon (not Dexcom's logo) next to the reading, color-matched to the current status."
       }
     ]
   }

@@ -102,6 +102,7 @@ risk.**
    | `historyWindowMinutes` | `60` | How far back that history line looks (15-180) |
    | `showTrendWord` | `false` | Spells out "rising" etc. instead of the raw Dexcom trend code |
    | `graphWindowMinutes` | `180` | How far back the popup graph looks (60-1440); fetched in the same call, no extra API load |
+   | `showSensorIcon` | `true` | Shows a small original icon (not Dexcom's logo) next to the bar reading |
 
 ## Troubleshooting
 
