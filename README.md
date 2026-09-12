@@ -48,6 +48,10 @@ risk.**
   `omarchy bar set`), so it's still selected after a shell restart or
   reboot. Also summonable over IPC (e.g. for a hotkey binding):
   `omarchy-shell io.github.boricuatec.dexcomg7 toggle` (also `open`/`close`).
+- **Tap any dot in the graph** to inspect it: shows a callout with that
+  reading's exact value and timestamp ("Yesterday, 7:55 AM"), a dashed guide
+  line down to the axis, and a ring on the selected point. Tap it again to
+  dismiss.
 
 ## Requirements
 

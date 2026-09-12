@@ -82,6 +82,26 @@ Panel {
     return h12 + ap
   }
 
+  function formatPointTimestamp(secondsAgo) {
+    var d = new Date(Date.now() - secondsAgo * 1000)
+    var now = new Date()
+    var yesterday = new Date(now)
+    yesterday.setDate(now.getDate() - 1)
+
+    var h = d.getHours()
+    var ap = h >= 12 ? "PM" : "AM"
+    var h12 = h % 12
+    if (h12 === 0) h12 = 12
+    var mm = d.getMinutes()
+    var timeStr = h12 + ":" + (mm < 10 ? "0" + mm : mm) + " " + ap
+
+    if (d.toDateString() === now.toDateString()) return timeStr
+    if (d.toDateString() === yesterday.toDateString()) return "Yesterday, " + timeStr
+    return (d.getMonth() + 1) + "/" + d.getDate() + ", " + timeStr
+  }
+
+  property int selectedPointIndex: -1
+
   function commonArgs() {
     var credentialsPath = String(setting("credentialsPath", ""))
     var args = [
@@ -127,6 +147,7 @@ Panel {
   function loadRange(minutes) {
     var changed = minutes !== root.selectedRangeMinutes
     root.selectedRangeMinutes = minutes
+    root.selectedPointIndex = -1
     // Persist the pick as the new default so it survives a shell restart -
     // omarchy bar set writes shell.json, not just this running instance.
     if (changed && bar) {
@@ -156,7 +177,10 @@ Panel {
     pollTimer.restart()
   }
 
-  onOpenedChanged: if (opened) root.refresh()
+  onOpenedChanged: {
+    if (opened) root.refresh()
+    root.selectedPointIndex = -1
+  }
 
   visible: true
   implicitWidth: barRow.implicitWidth
@@ -448,6 +472,57 @@ Panel {
           ctx.beginPath()
           ctx.arc(lastX, lastY, 4, 0, Math.PI * 2)
           ctx.stroke()
+
+          // Tapped-point callout: dashed guide line down to the axis, a ring
+          // on the point, and a bubble with its value + timestamp.
+          var sel = root.selectedPointIndex
+          if (sel >= 0 && sel < series.length) {
+            var sx = xFor(sel)
+            var sy = yFor(series[sel].value)
+
+            ctx.strokeStyle = "#888888"
+            ctx.lineWidth = 1
+            ctx.setLineDash([3, 3])
+            ctx.beginPath()
+            ctx.moveTo(sx, sy)
+            ctx.lineTo(sx, height)
+            ctx.stroke()
+            ctx.setLineDash([])
+
+            ctx.strokeStyle = "#ffffff"
+            ctx.lineWidth = 1.5
+            ctx.beginPath()
+            ctx.arc(sx, sy, 3, 0, Math.PI * 2)
+            ctx.stroke()
+
+            var label = series[sel].value + " " + root.unit
+            var when = typeof series[sel].secondsAgo === "number" ? root.formatPointTimestamp(series[sel].secondsAgo) : ""
+            var fullLabel = when ? (label + "   " + when) : label
+            ctx.font = "10px sans-serif"
+            var textWidth = ctx.measureText(fullLabel).width
+            var bubbleW = textWidth + 16
+            var bubbleH = 20
+            var bubbleX = Math.min(Math.max(sx - bubbleW / 2, 0), width - bubbleW)
+            var bubbleY = Math.max(sy - bubbleH - 8, 2)
+
+            ctx.fillStyle = "#2a2a2a"
+            ctx.fillRect(bubbleX, bubbleY, bubbleW, bubbleH)
+            ctx.fillStyle = "#ffffff"
+            ctx.fillText(fullLabel, bubbleX + 8, bubbleY + 14)
+          }
+        }
+
+        MouseArea {
+          anchors.fill: parent
+          onClicked: function (mouse) {
+            var series = root.series
+            if (!series || series.length < 2) return
+            var plotWidth = graphCanvas.width - root.graphLabelMargin
+            var frac = mouse.x / plotWidth
+            var idx = Math.round(frac * (series.length - 1))
+            idx = Math.max(0, Math.min(series.length - 1, idx))
+            root.selectedPointIndex = root.selectedPointIndex === idx ? -1 : idx
+          }
         }
       }
 
@@ -542,5 +617,6 @@ Panel {
     target: root
     function onSeriesChanged() { graphCanvas.requestPaint() }
     function onStatusChanged() { graphCanvas.requestPaint() }
+    function onSelectedPointIndexChanged() { graphCanvas.requestPaint() }
   }
 }
