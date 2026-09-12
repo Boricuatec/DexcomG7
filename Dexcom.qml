@@ -68,6 +68,15 @@ Panel {
     }
   }
 
+  function formatClockTime(secondsAgo) {
+    var d = new Date(Date.now() - secondsAgo * 1000)
+    var h = d.getHours()
+    var ap = h >= 12 ? "PM" : "AM"
+    var h12 = h % 12
+    if (h12 === 0) h12 = 12
+    return h12 + ap
+  }
+
   function commonArgs() {
     var credentialsPath = String(setting("credentialsPath", ""))
     var args = [
@@ -230,7 +239,7 @@ Panel {
     bar: root.bar
     open: root.opened
     contentWidth: panel.fittedContentWidth(300)
-    contentHeight: panel.fittedContentHeight(popupColumn.implicitHeight, 252)
+    contentHeight: panel.fittedContentHeight(popupColumn.implicitHeight, 320)
 
     Column {
       id: popupColumn
@@ -256,47 +265,41 @@ Panel {
         }
       }
 
-      Text {
-        width: parent.width
-        text: root.minutesAgo !== null ? (root.minutesAgo + " min ago") : "time unknown"
-        color: "#888888"
-        font.pixelSize: 11
-      }
-
       Row {
         width: parent.width
         spacing: 6
 
         Repeater {
           model: [
-            { label: "3h", minutes: 180 },
-            { label: "6h", minutes: 360 },
-            { label: "12h", minutes: 720 },
-            { label: "24h", minutes: 1440 },
+            { hours: "3", minutes: 180 },
+            { hours: "6", minutes: 360 },
+            { hours: "12", minutes: 720 },
+            { hours: "24", minutes: 1440 },
           ]
 
           Rectangle {
+            id: rangeChip
             required property var modelData
             readonly property bool active: root.selectedRangeMinutes === modelData.minutes
 
-            width: 44
+            width: label.implicitWidth + (active ? 16 : 8)
             height: 22
-            radius: 4
-            color: active ? (bar ? bar.barForeground : "white") : "transparent"
-            border.width: 1
-            border.color: bar ? bar.barForeground : "#888888"
+            radius: height / 2
+            color: active ? "#333333" : "transparent"
 
             Text {
+              id: label
               anchors.centerIn: parent
-              text: parent.modelData.label
-              color: parent.active ? (bar ? bar.background : "black") : (bar ? bar.barForeground : "white")
+              text: rangeChip.active ? (rangeChip.modelData.hours + " Hours") : rangeChip.modelData.hours
+              color: rangeChip.active ? "#ffffff" : "#888888"
               font.pixelSize: 11
+              font.bold: rangeChip.active
             }
 
             MouseArea {
               anchors.fill: parent
               cursorShape: Qt.PointingHandCursor
-              onClicked: root.loadRange(parent.modelData.minutes)
+              onClicked: root.loadRange(rangeChip.modelData.minutes)
             }
           }
         }
@@ -338,26 +341,50 @@ Panel {
           var yMax = hi + pad
           var range = yMax - yMin || 1
 
-          function xFor(i) { return (i / (series.length - 1)) * width }
+          function xFor(i) { return 3 + (i / (series.length - 1)) * (width - 6) }
           function yFor(v) {
             var c = Math.max(yMin, Math.min(yMax, v))
             return height - ((c - yMin) / range) * height
           }
 
+          // Thin threshold lines (not shaded bands) - gold for high, red for
+          // low - matching the official Dexcom app's own graph.
           if (typeof th.high === "number") {
-            ctx.fillStyle = "rgba(224,82,82,0.12)"
-            ctx.fillRect(0, 0, width, yFor(th.high))
+            var highY = yFor(th.high)
+            ctx.strokeStyle = "#e0a030"
+            ctx.lineWidth = 1
+            ctx.beginPath()
+            ctx.moveTo(0, highY)
+            ctx.lineTo(width, highY)
+            ctx.stroke()
+            ctx.fillStyle = "#e0a030"
+            ctx.font = "10px sans-serif"
+            ctx.fillText(th.high.toFixed(0), width - 28, highY - 3)
           }
           if (typeof th.low === "number") {
-            ctx.fillStyle = "rgba(224,82,82,0.12)"
-            ctx.fillRect(0, yFor(th.low), width, height - yFor(th.low))
+            var lowY = yFor(th.low)
+            ctx.strokeStyle = "#e05252"
+            ctx.lineWidth = 1
+            ctx.beginPath()
+            ctx.moveTo(0, lowY)
+            ctx.lineTo(width, lowY)
+            ctx.stroke()
+            ctx.fillStyle = "#e05252"
+            ctx.font = "10px sans-serif"
+            ctx.fillText(th.low.toFixed(0), width - 28, lowY - 3)
           }
+
+          // Faint scale-edge markers at the very top/bottom of the chart.
+          ctx.fillStyle = "#555555"
+          ctx.font = "9px sans-serif"
+          ctx.fillText(yMax.toFixed(0), 2, 9)
+          ctx.fillText(yMin.toFixed(0), 2, height - 3)
 
           // Discrete dots, not a connected line - each reading is a distinct
           // 5-minute sample, not part of a continuous interpolated signal.
           // Matches the official Dexcom app's own graph convention.
           ctx.fillStyle = "#ffffff"
-          for (var i = 0; i < series.length; i++) {
+          for (var i = 0; i < series.length - 1; i++) {
             var x = xFor(i)
             var y = yFor(series[i].value)
             ctx.beginPath()
@@ -365,17 +392,72 @@ Panel {
             ctx.fill()
           }
 
+          // Latest reading is a hollow ring, not a filled dot.
           var lastX = xFor(series.length - 1)
           var lastY = yFor(series[series.length - 1].value)
-          ctx.fillStyle = root.colorFor(root.status)
+          ctx.strokeStyle = "#ffffff"
+          ctx.lineWidth = 1.5
           ctx.beginPath()
           ctx.arc(lastX, lastY, 3.5, 0, Math.PI * 2)
-          ctx.fill()
+          ctx.stroke()
+        }
+      }
 
-          ctx.fillStyle = "#888888"
-          ctx.font = "10px sans-serif"
-          ctx.fillText(hi.toFixed(1), 4, 10)
-          ctx.fillText(lo.toFixed(1), 4, height - 4)
+      Row {
+        width: parent.width
+
+        Repeater {
+          model: {
+            var series = root.series
+            if (!series || series.length < 2) return []
+            var idxs = [0, Math.floor(series.length / 3), Math.floor((2 * series.length) / 3)]
+            var out = []
+            for (var i = 0; i < idxs.length; i++) {
+              var p = series[idxs[i]]
+              out.push(typeof p.secondsAgo === "number" ? root.formatClockTime(p.secondsAgo) : "")
+            }
+            out.push("Now")
+            return out
+          }
+
+          Text {
+            required property var modelData
+            required property int index
+            readonly property bool isNow: index === 3
+
+            width: parent.width / 4
+            horizontalAlignment: index === 0 ? Text.AlignLeft : (isNow ? Text.AlignRight : Text.AlignHCenter)
+            text: modelData
+            color: isNow ? "#ffffff" : "#888888"
+            font.pixelSize: 10
+            font.bold: isNow
+          }
+        }
+      }
+
+      Rectangle {
+        width: pillRow.implicitWidth + 20
+        height: 22
+        radius: height / 2
+        color: "#2a2a2a"
+
+        Row {
+          id: pillRow
+          anchors.centerIn: parent
+          spacing: 5
+
+          Rectangle {
+            width: 8
+            height: 8
+            radius: 4
+            anchors.verticalCenter: parent.verticalCenter
+            color: root.colorFor(root.status)
+          }
+          Text {
+            text: root.minutesAgo !== null ? (root.minutesAgo + " mins ago") : "time unknown"
+            color: "#cccccc"
+            font.pixelSize: 11
+          }
         }
       }
 
