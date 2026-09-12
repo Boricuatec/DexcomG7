@@ -229,7 +229,6 @@ Panel {
     owner: root
     bar: root.bar
     open: root.opened
-    centerOnBar: true
     contentWidth: 300
     contentHeight: 252
 
