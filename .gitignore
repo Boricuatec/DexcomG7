@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+.dexcom-env
+credentials.env
+*.env

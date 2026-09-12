@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "id": "io.github.boricuatec.dexcomg7",
+  "name": "Dexcom G7",
+  "version": "1.0.0",
+  "author": "Boricuatec",
+  "license": "MIT",
+  "description": "Live Dexcom G7 glucose readings in the Omarchy bar via the Dexcom Share API, with color-coded high/low alerts and a recent-history tooltip.",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "Dexcom.qml"
+  },
+  "barWidget": {
+    "displayName": "Dexcom G7",
+    "description": "Current glucose reading, trend arrow, and a recent-history tooltip. Colored by range: white/theme = normal, orange = low or high, red = urgent low or urgent high, gray = stale or errored.",
+    "category": "Health",
+    "allowMultiple": false,
+    "defaultSection": "right",
+    "defaults": {
+      "credentialsPath": "",
+      "server": "share2",
+      "pollIntervalSeconds": 60,
+      "lowThreshold": 70,
+      "highThreshold": 180,
+      "urgentLow": 55,
+      "urgentHigh": 250,
+      "staleAfterMinutes": 20
+    },
+    "schema": [
+      {
+        "key": "credentialsPath",
+        "type": "path",
+        "label": "Credentials file",
+        "description": "Path to a chmod-600 file with DEXCOM_USERNAME and DEXCOM_PASSWORD. Leave empty to use ~/.config/omarchy-dexcom/credentials.env. See README for setup and required account type.",
+        "defaultValue": ""
+      },
+      {
+        "key": "server",
+        "type": "enum",
+        "label": "Dexcom region",
+        "options": ["share2", "shareous1", "share"],
+        "defaultValue": "share2",
+        "description": "share2 = United States, shareous1 = outside the US, share = Japan."
+      },
+      {
+        "key": "pollIntervalSeconds",
+        "type": "integer",
+        "label": "Poll interval (seconds)",
+        "min": 30,
+        "max": 600,
+        "step": 10,
+        "defaultValue": 60
+      },
+      {
+        "key": "lowThreshold",
+        "type": "integer",
+        "label": "Low threshold (mg/dL)",
+        "min": 40,
+        "max": 100,
+        "step": 1,
+        "defaultValue": 70
+      },
+      {
+        "key": "highThreshold",
+        "type": "integer",
+        "label": "High threshold (mg/dL)",
+        "min": 120,
+        "max": 300,
+        "step": 5,
+        "defaultValue": 180
+      },
+      {
+        "key": "urgentLow",
+        "type": "integer",
+        "label": "Urgent low (mg/dL)",
+        "min": 30,
+        "max": 90,
+        "step": 1,
+        "defaultValue": 55
+      },
+      {
+        "key": "urgentHigh",
+        "type": "integer",
+        "label": "Urgent high (mg/dL)",
+        "min": 200,
+        "max": 400,
+        "step": 5,
+        "defaultValue": 250
+      },
+      {
+        "key": "staleAfterMinutes",
+        "type": "integer",
+        "label": "Stale after (minutes)",
+        "min": 10,
+        "max": 60,
+        "step": 5,
+        "defaultValue": 20
+      }
+    ]
+  }
+}

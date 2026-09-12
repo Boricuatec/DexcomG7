@@ -1,0 +1,102 @@
+<h1 align="center">Dexcom G7 for Omarchy</h1>
+
+<p align="center">
+  Live glucose readings, trend arrow, and a recent-history tooltip in the Omarchy bar,
+  pulled straight from the Dexcom Share API.
+</p>
+
+## Disclaimer
+
+This is an independent, unofficial project. It is **not affiliated with,
+endorsed by, or supported by Dexcom or Insulet**. It talks to a
+reverse-engineered API that Dexcom has not published and can change or
+break at any time without notice. It is not a medical device and must not
+be used as your primary means of monitoring glucose or making treatment
+decisions — always follow the official Dexcom app and your care team's
+guidance. Use entirely at your own risk.
+
+## What it shows
+
+- Current glucose value (mg/dL) and trend arrow, refreshed on an interval you set.
+- Color-coded by range: theme color = normal, orange = low/high, red = urgent
+  low/high, gray = stale (no recent reading) or errored.
+- Hover for a tooltip with the reading age and a rolling last-hour summary
+  (low–high range and overall direction).
+
+## Requirements
+
+- The Dexcom account used **must be the sensor wearer's own account** — the
+  one logged into the Dexcom G7 app on the phone actually paired to the
+  transmitter, with Share turned on in that app's Settings. A separate
+  Follow-app / follower account, or a Caregiver account watching a
+  Dependent's data, **will not work** — the Share API only ever returns data
+  for the authenticated account's own sensor. This isn't a bug you can work
+  around; it's how the endpoint is scoped.
+- Phone-number usernames (e.g. `+15551234567`) work fine as of a 2024 Dexcom
+  server update — no need for a separate alphanumeric username.
+
+## Setup
+
+1. Create the credentials file (default location shown; override via the
+   widget's settings if you'd rather keep it elsewhere):
+
+   ```bash
+   mkdir -p ~/.config/omarchy-dexcom
+   cat > ~/.config/omarchy-dexcom/credentials.env <<'EOF'
+   DEXCOM_USERNAME=you@example.com
+   DEXCOM_PASSWORD=your-dexcom-password
+   EOF
+   chmod 600 ~/.config/omarchy-dexcom/credentials.env
+   ```
+
+   This file is never read by anything but the script, is not part of this
+   git repo, and should never be committed anywhere. It's deliberately kept
+   **outside** this plugin's own directory so a future `omarchy plugin
+   update` (a `git merge`) can never touch it.
+
+2. Install the plugin:
+
+   ```bash
+   omarchy plugin add https://github.com/Boricuatec/DexcomG7 --enable
+   ```
+
+3. Set your region if you're outside the US, and tune thresholds, in the
+   widget's settings (gear icon in the bar customization view, or
+   `omarchy bar set io.github.boricuatec.dexcomg7 <key> <value>`):
+
+   | Setting | Default | Notes |
+   |---|---|---|
+   | `server` | `share2` | `share2` = US, `shareous1` = outside US, `share` = Japan |
+   | `pollIntervalSeconds` | `60` | Dexcom readings update every 5 min; no need to go lower |
+   | `lowThreshold` / `highThreshold` | `70` / `180` | mg/dL, orange warning band |
+   | `urgentLow` / `urgentHigh` | `55` / `250` | mg/dL, red urgent band |
+   | `staleAfterMinutes` | `20` | Flags a possible sensor/Bluetooth disconnect |
+
+## Troubleshooting
+
+- **"Dexcom login rejected" / `AccountPasswordInvalid` even with the right
+  password**: this almost always means the application ID doesn't match the
+  server region, or an older single-step login endpoint is being hit. This
+  plugin uses the two-step `AuthenticatePublisherAccount` →
+  `LoginPublisherAccountById` flow with the region-correct application ID
+  (matching the actively-maintained
+  [`pydexcom`](https://github.com/gagebenne/pydexcom) client) — if you forked
+  this and it regresses, that's the first thing to check.
+- **Empty `[]` result with a successful login**: you're authenticated as a
+  follower/caregiver account rather than the sensor wearer's own account —
+  see Requirements above.
+- **Repeated failures**: Dexcom's servers apply rate-limiting/lockout
+  protection after several failed logins in a row. Don't hammer retries;
+  verify the password by logging into the Dexcom app or
+  [myaccount.dexcom.com](https://myaccount.dexcom.com) directly first.
+- **Icon/glyph shows as a box**: this widget intentionally uses plain text
+  (`BG 112 →`) rather than a Nerd Font icon codepoint. Testing on a stock
+  Omarchy install found that fontconfig can report a codepoint as covered by
+  the theme font (JetBrainsMono Nerd Font) while the font still fails to
+  actually draw it, falling back to a tofu box. Plain Unicode arrows (`→ ↑ ↓`)
+  render fine; private-use icon-font codepoints are not trustworthy without
+  testing them in the live bar first.
+
+## License
+
+MIT
