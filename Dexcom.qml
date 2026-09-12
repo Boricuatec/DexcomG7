@@ -16,7 +16,7 @@ WidgetButton {
   }
 
   property bool ok: false
-  property int mgdl: 0
+  property string mgdl: "--"
   property string trendArrow: "?"
   property var minutesAgo: null
   property string status: "unknown"
@@ -53,6 +53,10 @@ WidgetButton {
       "--urgent-low", String(setting("urgentLow", 55)),
       "--urgent-high", String(setting("urgentHigh", 250)),
       "--stale-after", String(setting("staleAfterMinutes", 20)),
+      "--units", String(setting("units", "mgdl")),
+      "--show-history", setting("showHistoryInTooltip", true) ? "true" : "false",
+      "--history-minutes", String(setting("historyWindowMinutes", 60)),
+      "--show-trend-word", setting("showTrendWord", false) ? "true" : "false",
     ]
     if (credentialsPath !== "") {
       args.push("--credentials", credentialsPath)

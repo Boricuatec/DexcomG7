@@ -87,6 +87,10 @@ guidance. Use entirely at your own risk.
    | `lowThreshold` / `highThreshold` | `70` / `180` | mg/dL, orange warning band |
    | `urgentLow` / `urgentHigh` | `55` / `250` | mg/dL, red urgent band |
    | `staleAfterMinutes` | `20` | Flags a possible sensor/Bluetooth disconnect |
+   | `units` | `mgdl` | `mgdl` or `mmol`. Thresholds above are always entered in mg/dL regardless |
+   | `showHistoryInTooltip` | `true` | Toggles the "Last N min: lo-hi (direction)" tooltip line |
+   | `historyWindowMinutes` | `60` | How far back that history line looks (15-180) |
+   | `showTrendWord` | `false` | Spells out "rising" etc. instead of the raw Dexcom trend code |
 
 ## Troubleshooting
 

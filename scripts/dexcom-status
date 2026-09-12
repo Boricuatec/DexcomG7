@@ -24,6 +24,7 @@ or on failure:
 """
 import argparse
 import json
+import math
 import os
 import re
 import sys
@@ -57,6 +58,36 @@ TREND_ARROWS = {
     "None": "?",
 }
 
+# Human-readable trend words, same wording pydexcom uses.
+TREND_WORDS = {
+    "DoubleUp": "rising quickly",
+    "SingleUp": "rising",
+    "FortyFiveUp": "rising slightly",
+    "Flat": "steady",
+    "FortyFiveDown": "falling slightly",
+    "SingleDown": "falling",
+    "DoubleDown": "falling quickly",
+    "NotComputable": "unable to determine trend",
+    "RateOutOfRange": "trend unavailable",
+    "None": "unknown",
+}
+
+MMOL_L_PER_MGDL = 0.0555  # standard conversion factor (matches pydexcom)
+
+
+def parse_bool(value):
+    return str(value).strip().lower() in ("1", "true", "yes", "on")
+
+
+def format_value(mgdl, units):
+    if units == "mmol":
+        return f"{round(mgdl * MMOL_L_PER_MGDL, 1):.1f}"
+    return str(int(round(mgdl)))
+
+
+def unit_label(units):
+    return "mmol/L" if units == "mmol" else "mg/dL"
+
 
 def parse_args():
     p = argparse.ArgumentParser()
@@ -67,6 +98,10 @@ def parse_args():
     p.add_argument("--urgent-low", type=int, default=55)
     p.add_argument("--urgent-high", type=int, default=250)
     p.add_argument("--stale-after", type=int, default=20)
+    p.add_argument("--units", default="mgdl", choices=["mgdl", "mmol"])
+    p.add_argument("--show-history", default="true")
+    p.add_argument("--history-minutes", type=int, default=60)
+    p.add_argument("--show-trend-word", default="false")
     return p.parse_args()
 
 
@@ -219,7 +254,7 @@ def classify(mgdl, minutes_ago, args):
     return "normal"
 
 
-def summarize_history(readings):
+def summarize_history(readings, units):
     values = [r.get("Value") for r in readings if isinstance(r.get("Value"), (int, float))]
     if len(values) < 2:
         return None
@@ -228,22 +263,34 @@ def summarize_history(readings):
     newest, oldest = values[0], values[-1]  # API returns newest-first
     delta = newest - oldest
 
+    # Direction wording stays keyed off the raw mg/dL delta regardless of
+    # display units, so the +15 threshold means the same thing either way.
     if delta >= 15:
-        direction = f"+{delta} rising"
+        direction = f"rising (+{format_value(abs(delta), units)} {unit_label(units)})"
     elif delta <= -15:
-        direction = f"{delta} falling"
+        direction = f"falling (-{format_value(abs(delta), units)} {unit_label(units)})"
     else:
         direction = "steady overall"
 
     span_minutes = 5 * (len(values) - 1)
-    return f"Last {span_minutes} min: {lo}-{hi} mg/dL ({direction})"
+    lo_s, hi_s = format_value(lo, units), format_value(hi, units)
+    return f"Last {span_minutes} min: {lo_s}-{hi_s} {unit_label(units)} ({direction})"
 
 
 def main():
     args = parse_args()
+    show_history = parse_bool(args.show_history)
+    show_trend_word = parse_bool(args.show_trend_word)
+
     creds = load_credentials(args.credentials)
     if not creds:
         fail("no_credentials", f"Create {args.credentials} (chmod 600) - see README")
+
+    if show_history:
+        window = max(15, args.history_minutes)
+        max_count = min(288, max(2, math.ceil(window / 5) + 1))
+    else:
+        window, max_count = 1440, 1
 
     session_id = cached_session(args.server)
     readings = None
@@ -251,7 +298,7 @@ def main():
         if not session_id:
             session_id = login(creds, args.server)
         try:
-            readings = fetch_readings(args.server, session_id, minutes=60, max_count=12)
+            readings = fetch_readings(args.server, session_id, minutes=window, max_count=max_count)
             break
         except urllib.error.HTTPError as e:
             if e.code in (500, 401) and attempt == 0:
@@ -277,13 +324,16 @@ def main():
 
     status = classify(mgdl, minutes_ago, args)
     arrow = TREND_ARROWS.get(trend, "?")
+    display_value = format_value(mgdl, args.units)
+    unit = unit_label(args.units)
+    trend_text = TREND_WORDS.get(trend, trend) if show_trend_word else trend
 
     age_text = f"{minutes_ago} min ago" if minutes_ago is not None else "time unknown"
-    tooltip = f"{mgdl} mg/dL, {trend} - {age_text}"
+    tooltip = f"{display_value} {unit}, {trend_text} - {age_text}"
     if status == "stale":
-        tooltip = f"Last reading {age_text}: {mgdl} mg/dL (sensor may be disconnected)"
-    else:
-        history_line = summarize_history(readings)
+        tooltip = f"Last reading {age_text}: {display_value} {unit} (sensor may be disconnected)"
+    elif show_history:
+        history_line = summarize_history(readings, args.units)
         if history_line:
             tooltip += "\n" + history_line
 
@@ -291,7 +341,8 @@ def main():
         json.dumps(
             {
                 "ok": True,
-                "mgdl": mgdl,
+                "mgdl": display_value,
+                "unit": unit,
                 "trendArrow": arrow,
                 "trendLabel": trend,
                 "minutesAgo": minutes_ago,

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "io.github.boricuatec.dexcomg7",
   "name": "Dexcom G7",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": "Boricuatec",
   "license": "MIT",
   "description": "Live Dexcom G7 glucose readings in the Omarchy bar via the Dexcom Share API, with color-coded high/low alerts and a recent-history tooltip.",
@@ -26,7 +26,11 @@
       "highThreshold": 180,
       "urgentLow": 55,
       "urgentHigh": 250,
-      "staleAfterMinutes": 20
+      "staleAfterMinutes": 20,
+      "units": "mgdl",
+      "showHistoryInTooltip": true,
+      "historyWindowMinutes": 60,
+      "showTrendWord": false
     },
     "schema": [
       {
@@ -97,6 +101,38 @@
         "max": 60,
         "step": 5,
         "defaultValue": 20
+      },
+      {
+        "key": "units",
+        "type": "enum",
+        "label": "Display units",
+        "options": ["mgdl", "mmol"],
+        "defaultValue": "mgdl",
+        "description": "mgdl = mg/dL (US default), mmol = mmol/L (standard outside the US). Thresholds above are always entered in mg/dL regardless of this setting."
+      },
+      {
+        "key": "showHistoryInTooltip",
+        "type": "boolean",
+        "label": "Show recent-history line in tooltip",
+        "defaultValue": true,
+        "description": "Adds a \"Last N min: lo-hi (direction)\" line to the hover tooltip."
+      },
+      {
+        "key": "historyWindowMinutes",
+        "type": "integer",
+        "label": "History window (minutes)",
+        "min": 15,
+        "max": 180,
+        "step": 15,
+        "defaultValue": 60,
+        "description": "How far back the tooltip's history summary looks. Ignored if the history line is off."
+      },
+      {
+        "key": "showTrendWord",
+        "type": "boolean",
+        "label": "Spell out the trend in the tooltip",
+        "defaultValue": false,
+        "description": "e.g. \"rising\" instead of the raw Dexcom trend code, alongside the arrow."
       }
     ]
   }
