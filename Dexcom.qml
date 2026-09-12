@@ -68,7 +68,7 @@ Panel {
     }
   }
 
-  function buildCommand() {
+  function commonArgs() {
     var credentialsPath = String(setting("credentialsPath", ""))
     var args = [
       Qt.resolvedUrl("scripts/dexcom-status").toString().replace("file://", ""),
@@ -79,19 +79,43 @@ Panel {
       "--urgent-high", String(setting("urgentHigh", 250)),
       "--stale-after", String(setting("staleAfterMinutes", 20)),
       "--units", String(setting("units", "mgdl")),
-      "--show-history", settingBool("showHistoryInTooltip", true) ? "true" : "false",
-      "--history-minutes", String(setting("historyWindowMinutes", 60)),
-      "--show-trend-word", settingBool("showTrendWord", false) ? "true" : "false",
-      "--graph-minutes", String(setting("graphWindowMinutes", 180)),
     ]
     if (credentialsPath !== "") {
       args.push("--credentials", credentialsPath)
     }
+    return args
+  }
+
+  function buildCommand() {
+    var args = commonArgs().concat([
+      "--show-history", settingBool("showHistoryInTooltip", true) ? "true" : "false",
+      "--history-minutes", String(setting("historyWindowMinutes", 60)),
+      "--show-trend-word", settingBool("showTrendWord", false) ? "true" : "false",
+      "--graph-minutes", String(setting("graphWindowMinutes", 180)),
+    ])
+    return args.map(shQuote).join(" ")
+  }
+
+  // Used only when the popup's range buttons ask for a different window than
+  // the regular poll fetched - independent of the adaptive poll schedule.
+  function buildGraphCommand(minutes) {
+    var args = commonArgs().concat(["--show-history", "false", "--graph-minutes", String(minutes)])
     return args.map(shQuote).join(" ")
   }
 
   function refresh() {
     if (!proc.running) proc.running = true
+  }
+
+  property int selectedRangeMinutes: Number(setting("graphWindowMinutes", 180))
+  property bool graphLoading: false
+
+  function loadRange(minutes) {
+    root.selectedRangeMinutes = minutes
+    if (graphProc.running) return
+    root.graphLoading = true
+    graphProc.command = ["bash", "-lc", root.buildGraphCommand(minutes)]
+    graphProc.running = true
   }
 
   function fallbackDelaySeconds() {
@@ -152,6 +176,28 @@ Panel {
     }
   }
 
+  // Fires only when the popup's range buttons ask for a window different
+  // from the regular poll's - separate from proc so it never disturbs the
+  // adaptive poll schedule above.
+  Process {
+    id: graphProc
+    stdout: StdioCollector {
+      waitForEnd: true
+      onStreamFinished: {
+        root.graphLoading = false
+        try {
+          var data = JSON.parse(text)
+          if (data.ok) {
+            root.series = data.series || []
+            root.thresholds = data.thresholds || {}
+          }
+        } catch (e) {
+          // Leave the previously-shown graph in place on a bad response.
+        }
+      }
+    }
+  }
+
   Timer {
     id: pollTimer
     interval: 1000
@@ -179,7 +225,7 @@ Panel {
     open: root.opened
     centerOnBar: true
     contentWidth: 300
-    contentHeight: 220
+    contentHeight: 252
 
     Column {
       anchors.fill: parent
@@ -209,6 +255,53 @@ Panel {
         text: root.minutesAgo !== null ? (root.minutesAgo + " min ago") : "time unknown"
         color: "#888888"
         font.pixelSize: 11
+      }
+
+      Row {
+        width: parent.width
+        spacing: 6
+
+        Repeater {
+          model: [
+            { label: "3h", minutes: 180 },
+            { label: "6h", minutes: 360 },
+            { label: "12h", minutes: 720 },
+            { label: "24h", minutes: 1440 },
+          ]
+
+          Rectangle {
+            required property var modelData
+            readonly property bool active: root.selectedRangeMinutes === modelData.minutes
+
+            width: 44
+            height: 22
+            radius: 4
+            color: active ? (bar ? bar.barForeground : "white") : "transparent"
+            border.width: 1
+            border.color: bar ? bar.barForeground : "#888888"
+
+            Text {
+              anchors.centerIn: parent
+              text: parent.modelData.label
+              color: parent.active ? (bar ? bar.background : "black") : (bar ? bar.barForeground : "white")
+              font.pixelSize: 11
+            }
+
+            MouseArea {
+              anchors.fill: parent
+              cursorShape: Qt.PointingHandCursor
+              onClicked: root.loadRange(parent.modelData.minutes)
+            }
+          }
+        }
+
+        Text {
+          visible: root.graphLoading
+          text: "…"
+          color: "#888888"
+          font.pixelSize: 14
+          anchors.verticalCenter: parent.verticalCenter
+        }
       }
 
       Canvas {

@@ -40,8 +40,10 @@ guidance. Use entirely at your own risk.
 - Hover for a tooltip with the reading age and a rolling history summary
   (low–high range and overall direction).
 - **Click the bar text to open a popup** with the current reading and a graph
-  of recent history, shaded to show the low/high threshold bands. Also
-  summonable over IPC (e.g. for a hotkey binding):
+  of recent history, shaded to show the low/high threshold bands, plus
+  3h/6h/12h/24h range buttons (matching the Dexcom app) to re-fetch a wider
+  or narrower window on demand without disturbing the bar's own poll
+  schedule. Also summonable over IPC (e.g. for a hotkey binding):
   `omarchy-shell io.github.boricuatec.dexcomg7 toggle` (also `open`/`close`).
 
 ## Requirements
@@ -164,6 +166,13 @@ guidance. Use entirely at your own risk.
   visual `Item`s, so a `Connections {}` block used to trigger graph repaints
   has to live outside it (as a sibling of `button`/`panel`), not nested
   inside as a "child" of the popup content.
+- **A range button appears pre-selected when opening the popup via
+  `omarchy-shell ... open` (IPC) instead of an actual click**: seen once in
+  testing on this system's non-standard Hyprland fork, not reproduced via a
+  real click. `selectedRangeMinutes` is confirmed to only ever change inside
+  the range buttons' own click handler, so if this recurs for you, it's an
+  environment/compositor quirk around synthetic opens, not a logic bug —
+  worth a report against your specific setup if it's consistent.
 
 ## License
 
