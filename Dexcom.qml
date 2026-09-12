@@ -244,7 +244,7 @@ Panel {
     bar: root.bar
     open: root.opened
     contentWidth: panel.fittedContentWidth(300)
-    contentHeight: panel.fittedContentHeight(popupColumn.implicitHeight, 320)
+    contentHeight: panel.fittedContentHeight(popupColumn.implicitHeight, 340)
 
     Column {
       id: popupColumn
@@ -489,6 +489,15 @@ Panel {
         }
         color: "#888888"
         font.pixelSize: 11
+      }
+
+      Text {
+        width: parent.width
+        text: "Informational only, not medical advice. Use at your own risk."
+        color: "#555555"
+        font.pixelSize: 9
+        font.italic: true
+        wrapMode: Text.WordWrap
       }
     }
   }

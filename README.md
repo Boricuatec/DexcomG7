@@ -26,10 +26,11 @@ it helps yours.
 This is an independent, unofficial project. It is **not affiliated with,
 endorsed by, or supported by Dexcom or Insulet**. It talks to a
 reverse-engineered API that Dexcom has not published and can change or
-break at any time without notice. It is not a medical device and must not
-be used as your primary means of monitoring glucose or making treatment
-decisions — always follow the official Dexcom app and your care team's
-guidance. Use entirely at your own risk.
+break at any time without notice. It is not a medical device, is provided
+**for informational purposes only**, and must not be used as your primary
+means of monitoring glucose or making treatment decisions — always follow
+the official Dexcom app and your care team's guidance. **Use at your own
+risk.**
 
 ## What it shows
 
