@@ -229,10 +229,11 @@ Panel {
     owner: root
     bar: root.bar
     open: root.opened
-    contentWidth: 300
-    contentHeight: 252
+    contentWidth: panel.fittedContentWidth(300)
+    contentHeight: panel.fittedContentHeight(popupColumn.implicitHeight, 252)
 
     Column {
+      id: popupColumn
       anchors.fill: parent
       spacing: 8
 
