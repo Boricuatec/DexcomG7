@@ -52,6 +52,11 @@ Panel {
   readonly property int publishBufferSeconds: 20
   readonly property int minPollSeconds: 15
 
+  // Right-side margin reserved for the graph's axis labels, shared between
+  // the canvas plot area and the x-axis time-label row below it so "Now"
+  // lines up with the last dot instead of the popup's true right edge.
+  readonly property int graphLabelMargin: 34
+
   function colorFor(s) {
     switch (s) {
       case "urgent_low":
@@ -341,25 +346,31 @@ Panel {
           var yMax = hi + pad
           var range = yMax - yMin || 1
 
-          function xFor(i) { return 3 + (i / (series.length - 1)) * (width - 6) }
+          // Reserve a right-side margin for axis labels so dots/lines never
+          // run into them - matches the reference app, where the plot area
+          // stops well before the numbers.
+          var plotWidth = width - root.graphLabelMargin
+
+          function xFor(i) { return (i / (series.length - 1)) * plotWidth }
           function yFor(v) {
             var c = Math.max(yMin, Math.min(yMax, v))
             return height - ((c - yMin) / range) * height
           }
 
           // Thin threshold lines (not shaded bands) - gold for high, red for
-          // low - matching the official Dexcom app's own graph.
+          // low - matching the official Dexcom app's own graph. Lines stop
+          // at the plot edge; labels sit past them with a clear gap.
           if (typeof th.high === "number") {
             var highY = yFor(th.high)
             ctx.strokeStyle = "#e0a030"
             ctx.lineWidth = 1
             ctx.beginPath()
             ctx.moveTo(0, highY)
-            ctx.lineTo(width, highY)
+            ctx.lineTo(plotWidth, highY)
             ctx.stroke()
             ctx.fillStyle = "#e0a030"
             ctx.font = "10px sans-serif"
-            ctx.fillText(th.high.toFixed(0), width - 28, highY - 3)
+            ctx.fillText(th.high.toFixed(0), plotWidth + 5, highY + 3)
           }
           if (typeof th.low === "number") {
             var lowY = yFor(th.low)
@@ -367,18 +378,19 @@ Panel {
             ctx.lineWidth = 1
             ctx.beginPath()
             ctx.moveTo(0, lowY)
-            ctx.lineTo(width, lowY)
+            ctx.lineTo(plotWidth, lowY)
             ctx.stroke()
             ctx.fillStyle = "#e05252"
             ctx.font = "10px sans-serif"
-            ctx.fillText(th.low.toFixed(0), width - 28, lowY - 3)
+            ctx.fillText(th.low.toFixed(0), plotWidth + 5, lowY + 3)
           }
 
-          // Faint scale-edge markers at the very top/bottom of the chart.
+          // Faint scale-edge markers at the very top/bottom, same right-side
+          // column as the threshold labels.
           ctx.fillStyle = "#555555"
           ctx.font = "9px sans-serif"
-          ctx.fillText(yMax.toFixed(0), 2, 9)
-          ctx.fillText(yMin.toFixed(0), 2, height - 3)
+          ctx.fillText(yMax.toFixed(0), plotWidth + 5, 9)
+          ctx.fillText(yMin.toFixed(0), plotWidth + 5, height - 3)
 
           // Discrete dots, not a connected line - each reading is a distinct
           // 5-minute sample, not part of a continuous interpolated signal.
@@ -404,7 +416,7 @@ Panel {
       }
 
       Row {
-        width: parent.width
+        width: parent.width - root.graphLabelMargin
 
         Repeater {
           model: {
