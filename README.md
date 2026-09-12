@@ -5,6 +5,10 @@
   pulled straight from the Dexcom Share API.
 </p>
 
+<p align="center">
+  <a href="https://paypal.me/Boricuatec"><img alt="Donate via PayPal" src="https://img.shields.io/badge/donate-PayPal-00457C?logo=paypal&logoColor=white"></a>
+</p>
+
 ## Disclaimer
 
 This is an independent, unofficial project. It is **not affiliated with,
