@@ -356,7 +356,7 @@ Panel {
           // Discrete dots, not a connected line - each reading is a distinct
           // 5-minute sample, not part of a continuous interpolated signal.
           // Matches the official Dexcom app's own graph convention.
-          ctx.fillStyle = "#5b9bd5"
+          ctx.fillStyle = "#ffffff"
           for (var i = 0; i < series.length; i++) {
             var x = xFor(i)
             var y = yFor(series[i].value)
