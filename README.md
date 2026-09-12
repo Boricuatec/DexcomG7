@@ -125,6 +125,29 @@ guidance. Use entirely at your own risk.
   rescanPlugins` reliably picks up logic/property changes, but a change to
   the QML **root type** (e.g. `Item` → `WidgetButton`) may not fully apply
   until `omarchy restart shell`.
+- **Changing a setting (`omarchy bar set ...`) has no visible effect**: two
+  separate things to know here, both discovered getting this plugin's
+  settings working at all:
+  1. `bar.shellQuote` — listed in the bar plugin's own `README.md` as
+     available to custom widgets — **does not exist** on `PluginBarApi`, the
+     facade third-party plugins actually get (see
+     `/usr/share/omarchy/shell/Ui/PluginBarApi.qml`). Calling it throws a
+     `TypeError` inside the `Process.command` binding, which QML swallows by
+     silently keeping the command's last successfully-evaluated value —
+     meaning every settings change after the first render was **silently
+     ignored forever**, with no visible error unless you go looking at the
+     shell's own log. This widget quotes its own args (see `shQuote` in
+     `Dexcom.qml`) instead of relying on that method; if you fork this and
+     reach for `bar.shellQuote`, don't.
+  2. `omarchy bar set` always stores values as strings, including booleans —
+     a stored `"false"` is still a non-empty JS string and therefore
+     JS-truthy. Compare with `String(value).toLowerCase() === "true"` (see
+     `settingBool` in `Dexcom.qml`), not a bare truthiness check.
+  3. Even with both of those fixed, a settings change only reaches a
+     *running* widget instance on its next poll or a full reload — like the
+     root-type case above, `omarchy restart shell` is the reliable way to
+     see a settings change take effect immediately rather than waiting for
+     the poll interval.
 
 ## License
 

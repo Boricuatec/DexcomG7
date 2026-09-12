@@ -15,6 +15,21 @@ WidgetButton {
     return value === undefined || value === null || value === "" ? fallback : value
   }
 
+  // omarchy bar set stores everything as a string, including booleans - so
+  // a stored "false" must not be treated as JS-truthy (a non-empty string).
+  function settingBool(name, fallback) {
+    var value = setting(name, fallback)
+    if (typeof value === "boolean") return value
+    return String(value).toLowerCase() === "true"
+  }
+
+  // Third-party plugins get a sandboxed PluginBarApi facade, not the raw
+  // bar - it has no shellQuote (despite bar/README.md listing one; that's
+  // first-party-only). Quoting our own args here avoids depending on it.
+  function shQuote(s) {
+    return "'" + String(s).replace(/'/g, "'\\''") + "'"
+  }
+
   property bool ok: false
   property string mgdl: "--"
   property string trendArrow: "?"
@@ -54,15 +69,14 @@ WidgetButton {
       "--urgent-high", String(setting("urgentHigh", 250)),
       "--stale-after", String(setting("staleAfterMinutes", 20)),
       "--units", String(setting("units", "mgdl")),
-      "--show-history", setting("showHistoryInTooltip", true) ? "true" : "false",
+      "--show-history", settingBool("showHistoryInTooltip", true) ? "true" : "false",
       "--history-minutes", String(setting("historyWindowMinutes", 60)),
-      "--show-trend-word", setting("showTrendWord", false) ? "true" : "false",
+      "--show-trend-word", settingBool("showTrendWord", false) ? "true" : "false",
     ]
     if (credentialsPath !== "") {
       args.push("--credentials", credentialsPath)
     }
-    var quoted = args.map(function(a) { return bar ? bar.shellQuote(a) : a })
-    return quoted.join(" ")
+    return args.map(shQuote).join(" ")
   }
 
   function refresh() {
