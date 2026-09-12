@@ -353,16 +353,17 @@ Panel {
             ctx.fillRect(0, yFor(th.low), width, height - yFor(th.low))
           }
 
-          ctx.strokeStyle = "#5b9bd5"
-          ctx.lineWidth = 2
-          ctx.beginPath()
+          // Discrete dots, not a connected line - each reading is a distinct
+          // 5-minute sample, not part of a continuous interpolated signal.
+          // Matches the official Dexcom app's own graph convention.
+          ctx.fillStyle = "#5b9bd5"
           for (var i = 0; i < series.length; i++) {
             var x = xFor(i)
             var y = yFor(series[i].value)
-            if (i === 0) ctx.moveTo(x, y)
-            else ctx.lineTo(x, y)
+            ctx.beginPath()
+            ctx.arc(x, y, 2, 0, Math.PI * 2)
+            ctx.fill()
           }
-          ctx.stroke()
 
           var lastX = xFor(series.length - 1)
           var lastY = yFor(series[series.length - 1].value)
