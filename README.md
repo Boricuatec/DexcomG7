@@ -7,6 +7,11 @@
 
 <p align="center">
   <a href="https://paypal.me/Boricuatec"><img alt="Donate via PayPal" src="https://img.shields.io/badge/donate-PayPal-00457C?logo=paypal&logoColor=white"></a>
+  <img alt="Donate via Bitcoin" src="https://img.shields.io/badge/donate-Bitcoin-f7931a?logo=bitcoin&logoColor=white">
+</p>
+
+<p align="center">
+  BTC: <code>38qF99r4PUsnh46KgLwpBcg7xvjBdgWotK</code>
 </p>
 
 ## Why I built this
@@ -17,9 +22,9 @@ own computer while I'm working, without having to pick up my phone every few
 minutes. This plugin is that — built for him, first and foremost.
 
 If it's useful to you too and you'd like to contribute, every bit donated
-through the PayPal link above goes straight into his college fund. No
-pressure at all — just glad to share something that helps our family in case
-it helps yours.
+through the PayPal link or Bitcoin address above goes straight into his
+college fund. No pressure at all — just glad to share something that helps
+our family in case it helps yours.
 
 ## Disclaimer
 
