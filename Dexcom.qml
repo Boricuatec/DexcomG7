@@ -25,6 +25,10 @@ Item {
   implicitWidth: label.implicitWidth + 16
   implicitHeight: bar ? bar.barSize : 26
 
+  // Required by the bar's tooltip system (see Bar.qml targetTooltipHovered):
+  // showTooltip/hideTooltip only act on a target exposing this property.
+  readonly property bool tooltipHovered: visible && opacity > 0 && mouseArea.containsMouse
+
   function colorFor(status) {
     switch (status) {
       case "urgent_low":
