@@ -111,7 +111,13 @@ Panel {
   property bool graphLoading: false
 
   function loadRange(minutes) {
+    var changed = minutes !== root.selectedRangeMinutes
     root.selectedRangeMinutes = minutes
+    // Persist the pick as the new default so it survives a shell restart -
+    // omarchy bar set writes shell.json, not just this running instance.
+    if (changed && bar) {
+      bar.run("omarchy bar set " + root.moduleName + " graphWindowMinutes " + minutes)
+    }
     if (graphProc.running) return
     root.graphLoading = true
     graphProc.command = ["bash", "-lc", root.buildGraphCommand(minutes)]

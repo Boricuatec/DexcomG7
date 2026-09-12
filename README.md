@@ -43,7 +43,9 @@ guidance. Use entirely at your own risk.
   of recent history, shaded to show the low/high threshold bands, plus
   3h/6h/12h/24h range buttons (matching the Dexcom app) to re-fetch a wider
   or narrower window on demand without disturbing the bar's own poll
-  schedule. Also summonable over IPC (e.g. for a hotkey binding):
+  schedule. Your last-picked range is saved as the new default (via
+  `omarchy bar set`), so it's still selected after a shell restart or
+  reboot. Also summonable over IPC (e.g. for a hotkey binding):
   `omarchy-shell io.github.boricuatec.dexcomg7 toggle` (also `open`/`close`).
 
 ## Requirements
