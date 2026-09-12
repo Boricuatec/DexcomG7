@@ -400,7 +400,7 @@ Panel {
             var x = xFor(i)
             var y = yFor(series[i].value)
             ctx.beginPath()
-            ctx.arc(x, y, 2, 0, Math.PI * 2)
+            ctx.arc(x, y, 1, 0, Math.PI * 2)
             ctx.fill()
           }
 
@@ -410,7 +410,7 @@ Panel {
           ctx.strokeStyle = "#ffffff"
           ctx.lineWidth = 1.5
           ctx.beginPath()
-          ctx.arc(lastX, lastY, 3.5, 0, Math.PI * 2)
+          ctx.arc(lastX, lastY, 1.75, 0, Math.PI * 2)
           ctx.stroke()
         }
       }
