@@ -191,6 +191,19 @@ risk.**
   environment/compositor quirk around synthetic opens, not a logic bug —
   worth a report against your specific setup if it's consistent.
 
+## Uninstall
+
+```bash
+omarchy plugin remove io.github.boricuatec.dexcomg7
+```
+
+This removes the plugin from the bar and backs up (or deletes, if it was
+cloned via `omarchy plugin add`) its folder under
+`~/.config/omarchy/plugins/`. It does **not** delete your credentials file
+(`~/.config/omarchy-dexcom/credentials.env`) or session cache
+(`~/.cache/omarchy-dexcom-session.json`) — remove those yourself if you're
+done with the plugin entirely.
+
 ## License
 
 MIT
